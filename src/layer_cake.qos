@@ -21,9 +21,17 @@ QDISC=cake
 egress() {
     local qdisc
     qdisc=$(select_cake $IFACE)
+
+    local egress_bw
+    if [ "$UPLINK" = "unlimited" ]; then
+        egress_bw="unlimited"
+    else
+        egress_bw="bandwidth ${UPLINK}kbit"
+    fi
+
     SILENT=1 $TC qdisc del dev $IFACE root
     $TC qdisc add dev $IFACE root $( get_stab_string ) $qdisc \
-        bandwidth ${UPLINK}kbit $( get_cake_lla_string ) ${EGRESS_CAKE_OPTS} ${EQDISC_OPTS}
+        ${egress_bw} $( get_cake_lla_string ) ${EGRESS_CAKE_OPTS} ${EQDISC_OPTS}
 
 }
 
@@ -40,8 +48,15 @@ ingress() {
     [ "$IGNORE_DSCP_INGRESS" -eq "1" ] && INGRESS_CAKE_OPTS="$INGRESS_CAKE_OPTS besteffort"
     [ "$ZERO_DSCP_INGRESS" -eq "1" ] && INGRESS_CAKE_OPTS="$INGRESS_CAKE_OPTS wash"
 
+    local ingress_bw
+    if [ "$DOWNLINK" = "unlimited" ]; then
+        ingress_bw="unlimited"
+    else
+        ingress_bw="bandwidth ${DOWNLINK}kbit"
+    fi
+
     $TC qdisc add dev $DEV root $( get_stab_string ) $qdisc \
-        bandwidth ${DOWNLINK}kbit $( get_cake_lla_string ) ${INGRESS_CAKE_OPTS} ${IQDISC_OPTS}
+        ${ingress_bw} $( get_cake_lla_string ) ${INGRESS_CAKE_OPTS} ${IQDISC_OPTS}
 
     $IP link set dev $DEV up
 
